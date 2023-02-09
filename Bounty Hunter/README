@@ -1,0 +1,1 @@
+Run bounties.sql inside your character database. This will create the bounties table that the script will use to store bounty information. 
