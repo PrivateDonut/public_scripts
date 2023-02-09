@@ -39,30 +39,41 @@ if bountyScript == true then
         local gold = gold * 10000
         return gold
     end
+    -- convert gold to copper 
+    local function convertGold(gold)
+        local gold = gold / 10000
+        return gold
+    end
 
     local function OnGossipHello(event, player, creature)
         if rewardGold == true then
-            player:GossipMenuAddItem(0, "Place Bounty With Gold", 0, 1, 1,
+            player:GossipMenuAddItem(0, "|TInterface\\icons\\INV_Misc_Coin_01:30:30:-20|tPlace Bounty With Gold|r", 0, 1, 1,
                 "|cFFFF0000Bounty Hunter|r\n\n Place your bounty\n  Minimum Bounty: |cFF00FF00" ..
                     format_number(minGoldBounty) .. " gold|r\n Maximum Bounty: |cFF00FF00" ..
                     format_number(maxGoldBounty) .. " gold|r\n\n" .. "Accept and enter bounty amount", code)
         end
         if rewardItem == true then
-            player:GossipMenuAddItem(0, "Place Bounty With " .. GetItemLink(rewardItemID) .. "", 0, 10, 1,
+            player:GossipMenuAddItem(0, "|TInterface\\icons\\inv_misc_token_argentdawn3:30:30:-20|tPlace Bounty With " .. GetItemLink(rewardItemID) .. "|r", 0, 10, 1,
                 "|cFFFF0000Bounty Hunter|r\n\n  Place your bounty\n  Minimum Bounty: |cffFF4809" ..
                     format_number(minItemBounty) .. " " .. GetItemLink(rewardItemID) ..
                     "|r\n Maximum Bounty: |cffFF4809" .. format_number(maxItemBounty) .. " " ..
                     GetItemLink(rewardItemID) .. "|r\n\n" .. "Accept and enter bounty amount", code)
         end
+        player:GossipMenuAddItem(0, "|TInterface\\icons\\Spell_Shadow_SacrificialShield:30:30:-20|tNevermind|r", 0, 7)
         player:GossipSendMenu(1, creature)
     end
 
+    local function OnGossipSelect(event, player, creature, sender, initd, code, menuid)
+        if (initd == 7) then
+            player:GossipComplete()
+        end
+    end
     local function GoldBounty(event, player, creature, sender, intid, code, menuid)
         -- Get the gold amount and store it in the temp bounty table. 
         if (intid == 1) then
             if (tonumber(code)) then
                 bountyAmount = tonumber(code)
-                player:GossipMenuAddItem(0, "Enter Players Name", 0, 3, 1,
+                player:GossipMenuAddItem(0, "|TInterface\\icons\\inv_misc_bone_humanskull_01:30:30:-20|tEnter Players Name|r", 0, 3, 1,
                     "|cFFFF0000[Bounty Hunter]|r\n\n Enter players name." .. "\n\n|cFF00FF00Bounty Amount: |r" ..
                         format_number(bountyAmount) .. " gold")
                 player:GossipSendMenu(1, creature)
@@ -74,6 +85,7 @@ if bountyScript == true then
         if (intid == 3) then
             if (tostring(code)) then
                 local target = tostring(code)
+                playerGold = player:GetCoinage() * 10000 -- Get player gold
                 -- get target by name
                 local targetName = GetPlayerByName(target)
                 if targetName == nil then
@@ -99,27 +111,32 @@ if bountyScript == true then
 
                 if checkIsGM == true and player:IsGM() == true then -- Check if player is a GM
                     player:SendBroadcastMessage("|cFFFF0000[Bounty Hunter]|r You cannot place a bounty on a GM.")
+                    player:GossipComplete()
                     return
                 elseif checkIsInCombat == true and player:IsInCombat() == true then -- Check if player is in combat
                     player:SendBroadcastMessage("|cFFFF0000[Bounty Hunter]|r You cannot place a bounty while in combat.")
+                    player:GossipComplete()
                     return
                 elseif checkIfSameIP == true and player:GetPlayerIP() == target:GetPlayerIP() then -- Check if player is placing a bounty on someone with the same IP
                     player:SendBroadcastMessage(
                         "|cFFFF0000[Bounty Hunter]|r You cannot place a bounty on someone with the same IP.")
+                        player:GossipComplete()
                     return
                 elseif bountyAmount < minGoldBounty then -- Check if bounty amount is less than the minimum bounty amount
                     player:SendBroadcastMessage(
                         "|cFFFF0000[Bounty Hunter]|r You cannot place a bounty less than |cFF00FF00" ..
                             format_number(minGoldBounty) .. " gold|r.")
+                            player:GossipComplete()
                     return
                 elseif bountyAmount > maxGoldBounty then -- Check if bounty amount is greater than the maximum bounty amount
                     player:SendBroadcastMessage(
                         "|cFFFF0000[Bounty Hunter]|r You cannot place a bounty greater than |cFF00FF00" ..
                             format_number(maxGoldBounty) .. " gold|r.")
+                            player:GossipComplete()
                     return
-                elseif convertMoney(player:GetCoinage()) < convertMoney(bountyAmount) then -- Check if player has enough gold to place the bounty
-                    player:SendBroadcastMessage(
-                        "|cFFFF0000[Bounty Hunter]|r You do not have enough gold to place this bounty.")
+                elseif bountyAmount > convertGold(player:GetCoinage())  then -- Check if player has enough gold to place the bounty
+                    player:SendBroadcastMessage("|cFFFF0000[Bounty Hunter]|r You do not have enough gold to place this bounty.")
+                    player:GossipComplete()
                     return
                 else
                     local query = CharDBQuery("SELECT * FROM bounties WHERE placedOn = '" .. targetGuid .. "'")
@@ -153,7 +170,7 @@ if bountyScript == true then
         if (intid == 10) then
             if (tonumber(code)) then
                 bountyAmount = tonumber(code)
-                player:GossipMenuAddItem(0, "Enter Players Name", 0, 11, 1,
+                player:GossipMenuAddItem(0, "|TInterface\\icons\\inv_misc_bone_humanskull_01:30:30:-20|tEnter Players Name|r", 0, 11, 1,
                     "|cFFFF0000[Bounty Hunter]|r\n\n Enter players name." .. "\n\n|cFF00FF00Bounty Amount: |r" ..
                         format_number(bountyAmount) .. "" .. GetItemLink(rewardItemID) .. "")
                 player:GossipSendMenu(1, creature)
@@ -205,15 +222,17 @@ if bountyScript == true then
                     player:SendBroadcastMessage(
                         "|cFFFF0000[Bounty Hunter]|r You cannot place a bounty less than |cFF00FF00" ..
                             format_number(minItemBounty) .. " " .. GetItemLink(rewardItemID) .. "|r.")
+                            player:GossipComplete()
                     return
                 elseif bountyAmount > maxItemBounty then -- Check if bounty amount is greater than the maximum bounty amount
                     player:SendBroadcastMessage(
                         "|cFFFF0000[Bounty Hunter]|r You cannot place a bounty greater than |cFF00FF00" ..
                             format_number(maxItemBounty) .. " " .. GetItemLink(rewardItemID) .. "|r.")
+                            player:GossipComplete()
                     return
                 elseif player:GetItemCount(rewardItemID) < bountyAmount then -- Check if player has enough gold to place the bounty
-                    player:SendBroadcastMessage("|cFFFF0000[Bounty Hunter]|r You do not have enough " ..
-                                                    GetItemLink(rewardItemID) .. " to place this bounty.")
+                    player:SendBroadcastMessage("|cFFFF0000[Bounty Hunter]|r You do not have enough " ..GetItemLink(rewardItemID) .. " to place this bounty.")
+                player:GossipComplete()
                     return
                 else
                     local query = CharDBQuery("SELECT * FROM bounties WHERE placedOn = '" .. targetGuid .. "'")
@@ -337,6 +356,7 @@ if bountyScript == true then
     end
 
     RegisterCreatureGossipEvent(npcid, 1, OnGossipHello)
+    RegisterCreatureGossipEvent(npcid, 2, OnGossipSelect)
     RegisterCreatureGossipEvent(npcid, 2, GoldBounty)
     RegisterCreatureGossipEvent(npcid, 2, ItemBounty)
     RegisterPlayerEvent(6, OnPlayerKillPlayer)
