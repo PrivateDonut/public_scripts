@@ -1,1 +1,8 @@
-Run bounties.sql inside your character database. This will create the bounties table that the script will use to store bounty information. 
+#How to setup
+This script is made for Eluna Lua Engine. 
+
+Step 1: 
+Run the ** bounties.sql ** inside your ** character ** database. This will create the bounties database this script will use. 
+
+Step 2: 
+Place bounty_hunter.lua inside your lua_scripts folder, change the settings to your liking and reload eluna ingame. 
